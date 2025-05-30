@@ -231,8 +231,8 @@ func (g *ClientGenerator) processObjectSchema(name string, schema *openapi.Schem
 		// TODO: handle additional properties
 
 		return &models.TypeModel{
-			Name:       g.adapter.FormatTypeName(name),
-			Type:      g.adapter.ConvertType(schema),
+			Name: g.adapter.FormatTypeName(name),
+			Type: g.adapter.ConvertType(schema),
 		}
 	}
 

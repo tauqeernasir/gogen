@@ -37,6 +37,18 @@ func (ts *TypeScriptAdapter) ConvertType(schema *openapi.Schema) string {
 		return ts.FormatTypeName(refName)
 	}
 
+	if len(schema.OneOf) > 0 {
+		return ts.handleOneOf(schema)
+	}
+
+	if len(schema.AllOf) > 0 {
+		return ts.handleAllOf(schema)
+	}
+
+	if len(schema.AnyOf) > 0 {
+		return ts.handleAnyOf(schema)
+	}
+
 	switch schema.Type {
 	case "string":
 		if len(schema.Enum) > 0 {
@@ -112,28 +124,29 @@ func (ts *TypeScriptAdapter) GetTemplateData(model *models.ClientModel) interfac
 	}
 }
 
-var builtInTypes = map[string]bool{
-	"string":    true,
-	"number":    true,
-	"boolean":   true,
-	"Date":      true,
-	"RegExp":    true,
-	"Error":     true,
-	"Array":     true,
-	"Map":       true,
-	"Set":       true,
-	"Promise":   true,
-	"any":       true,
-	"unknown":   true,
-	"void":      true,
-	"null":      true,
-	"undefined": true,
-	"object":    true,
+func (ts *TypeScriptAdapter) handleAllOf(schema *openapi.Schema) string {
+	var types []string
+	for _, subSchema := range schema.AllOf {
+		types = append(types, ts.ConvertType(&subSchema))
+	}
+
+	return strings.Join(types, " & ")
 }
 
-func (ts *TypeScriptAdapter) IsBuiltInType(schema *openapi.Schema) bool {
-	baseType := strings.Split(schema.Type, "<")[0]
-	baseType = strings.TrimSpace(baseType)
+func (ts *TypeScriptAdapter) handleOneOf(schema *openapi.Schema) string {
+	var types []string
+	for _, subSchema := range schema.OneOf {
+		types = append(types, ts.ConvertType(&subSchema))
+	}
 
-	return builtInTypes[baseType]
+	return strings.Join(types, " | ")
+}
+
+func (ts *TypeScriptAdapter) handleAnyOf(schema *openapi.Schema) string {
+	var types []string
+	for _, subSchema := range schema.AnyOf {
+		types = append(types, ts.ConvertType(&subSchema))
+	}
+
+	return strings.Join(types, " | ")
 }
