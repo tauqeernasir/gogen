@@ -166,7 +166,17 @@ func (g *ClientGenerator) buildMethodModel(path, httpMethod string, operation *o
 	var parameters []models.ParameterModel
 	var requestBody *models.RequestBodyModel
 
+	seen := make(map[string]bool)
+
 	for _, param := range operation.Parameters {
+
+		paramKey := param.Name + ":" + param.In
+
+		if seen[paramKey] {
+			continue
+		}
+		seen[paramKey] = true
+
 		parameters = append(parameters, models.ParameterModel{
 			Name:        g.adapter.FormatPropertyName(param.Name),
 			Type:        g.adapter.ConvertType(param.Schema),
@@ -193,10 +203,9 @@ func (g *ClientGenerator) buildMethodModel(path, httpMethod string, operation *o
 	}
 
 	return models.MethodModel{
-		//Name:         g.adapter.FormatMethodName(operation.OperationID, httpMethod, operation.Tags),
 		Name:         operation.OperationID,
 		HTTPMethod:   httpMethod,
-		Path:         path,
+		Path:         g.adapter.FormatPath(path, httpMethod),
 		Summary:      operation.Summary,
 		Description:  operation.Description,
 		Parameters:   parameters,

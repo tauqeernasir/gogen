@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"gogen/internal/models"
 	"gogen/internal/openapi"
-	"gogen/internal/utils"
 	"strings"
 )
 
@@ -95,17 +94,17 @@ func (ts *TypeScriptAdapter) ConvertType(schema *openapi.Schema) string {
 // FormatMethodName formats a method name using camelCase convention
 func (ts *TypeScriptAdapter) FormatMethodName(operationID, httpMethod string, tags []string) string {
 	if operationID != "" {
-		return utils.ToCamelCase(operationID)
+		return operationID
 	}
 	if len(tags) > 0 {
-		return utils.ToCamelCase(tags[0] + httpMethod)
+		return tags[0] + httpMethod
 	}
-	return utils.ToCamelCase(httpMethod + "Request")
+	return httpMethod + "Request"
 }
 
 // FormatTypeName formats a type name using PascalCase convention
 func (ts *TypeScriptAdapter) FormatTypeName(name string) string {
-	return utils.ToPascalCase(name)
+	return name
 }
 
 // FormatPropertyName formats a property name (no change for TypeScript)
@@ -149,4 +148,8 @@ func (ts *TypeScriptAdapter) handleAnyOf(schema *openapi.Schema) string {
 	}
 
 	return strings.Join(types, " | ")
+}
+
+func (ts *TypeScriptAdapter) FormatPath(path, httpMethod string) string {
+	return strings.ReplaceAll(path, "{", "${")
 }

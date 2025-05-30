@@ -27,4 +27,7 @@ type LanguageAdapter interface {
 
 	// GetTemplateData prepares data for template rendering
 	GetTemplateData(model *models.ClientModel) interface{}
+
+	// FormatPath formats a path according to language conventions
+	FormatPath(path, httpMethod string) string
 }
