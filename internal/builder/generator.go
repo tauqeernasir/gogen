@@ -12,6 +12,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -175,6 +176,15 @@ func (g *ClientGenerator) buildMethodModel(path, httpMethod string, operation *o
 		})
 	}
 
+	// sort parameters by required so that they can be rendered in the correct order
+	sort.Slice(parameters, func(i, j int) bool {
+		if parameters[i].Required != parameters[j].Required {
+			return parameters[i].Required
+		}
+
+		return parameters[i].Name < parameters[j].Name
+	})
+
 	if operation.RequestBody != nil {
 		requestBody = &models.RequestBodyModel{
 			Type:     g.getRequestBodyType(operation.RequestBody),
@@ -239,10 +249,21 @@ func (g *ClientGenerator) processObjectSchema(name string, schema *openapi.Schem
 	var properties []models.PropertyModel
 	for propName, propSchema := range schema.Properties {
 
+		isRequired := false
+		if schema.Required != nil {
+			if schema.Required.BoolValue != nil && *schema.Required.BoolValue {
+				isRequired = true
+			}
+
+			if schema.Required.ArrayValue != nil {
+				isRequired = utils.Contains(schema.Required.ArrayValue, propName)
+			}
+		}
+
 		properties = append(properties, models.PropertyModel{
 			Name:     g.adapter.FormatPropertyName(propName),
 			Type:     g.adapter.ConvertType(propSchema),
-			Required: utils.Contains(schema.Required, propName),
+			Required: isRequired,
 		})
 	}
 

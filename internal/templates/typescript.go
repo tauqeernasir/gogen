@@ -90,7 +90,8 @@ export class {{.ClientClassName}} {
       method: '{{.HTTPMethod}}',
       url: ` + "`{{.Path}}`" + `,{{if .RequestBody}}
       data: data,{{end}}{{if .Parameters}}
-      params: { {{range $i, $p := .Parameters}}{{if eq $p.In "query"}}{{if $i}}, {{end}}{{$p.Name}}{{end}}{{end}} },{{end}}
+      headers: { {{range $i, $p := .Parameters}}{{if eq $p.In "header"}}{{if $i}} {{end}}{{$p.Name}}, {{end}}{{end}} },
+      params: { {{range $i, $p := .Parameters}}{{if eq $p.In "query"}}{{if $i}}{{end}}{{$p.Name}}, {{end}}{{end}} },{{end}}
     };
 
     const response: AxiosResponse<{{.ResponseType}}> = await this.client.request(config);

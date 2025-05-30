@@ -1,5 +1,10 @@
 package openapi
 
+import (
+	"encoding/json"
+	"fmt"
+)
+
 // OpenAPISpec represents the root OpenAPI specification
 type OpenAPISpec struct {
 	Info       Info                `json:"info"`
@@ -72,17 +77,40 @@ type Components struct {
 	Schemas map[string]Schema `json:"schemas"`
 }
 
+// FlexibleRequired is a flexible required field that can be either a boolean or an array of strings
+// for some reason NestJS uses a different format for the required field than OpenAPI
+type FlexibleRequired struct {
+	BoolValue  *bool    `json:"boolValue,omitempty"`
+	ArrayValue []string `json:"arrayValue,omitempty"`
+}
+
+func (f *FlexibleRequired) UnmarshalJSON(data []byte) error {
+	var temp bool
+	if err := json.Unmarshal(data, &temp); err == nil {
+		f.BoolValue = &temp
+		return nil
+	}
+
+	var s []string
+	if err := json.Unmarshal(data, &s); err == nil {
+		f.ArrayValue = s
+		return nil
+	}
+
+	return fmt.Errorf("failed to unmarshal required field")
+}
+
 // Schema allows the definition of input and output data types
 type Schema struct {
 	Type                 string             `json:"type"`
 	Properties           map[string]*Schema `json:"properties"`
 	Items                *Schema            `json:"items"`
-	Required             []string           `json:"required"`
+	Required             *FlexibleRequired  `json:"required"`
 	Ref                  string             `json:"$ref"`
 	AllOf                []Schema           `json:"allOf"`
 	OneOf                []Schema           `json:"oneOf"`
 	AnyOf                []Schema           `json:"anyOf"`
 	Format               string             `json:"format"`
-	Enum                 []interface{}      `json:"enum"`
-	AdditionalProperties interface{}        `json:"additionalProperties"`
+	Enum                 []any              `json:"enum"`
+	AdditionalProperties any                `json:"additionalProperties"`
 }
