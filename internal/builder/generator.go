@@ -201,74 +201,55 @@ func (g *ClientGenerator) buildTypes() []models.TypeModel {
 	for name, schema := range g.spec.Components.Schemas {
 		var typeModel *models.TypeModel
 
-		switch {
-		case schema.Type == "object":
-			typeModel = g.processObjectSchema(name, &schema)
-			break
-		case schema.Type == "array":
-			typeModel = g.processArraySchema(name, &schema)
-			break
+		switch schema.Type {
+		case "object":
+			if len(schema.Properties) > 0 {
+				typeModel = g.processObjectSchema(name, &schema)
+			}
+		case "array", "string", "integer", "number", "boolean":
+			typeModel = &models.TypeModel{
+				Name: g.adapter.FormatTypeName(name),
+				Type: g.adapter.ConvertType(&schema),
+			}
+		default:
+			typeModel = &models.TypeModel{
+				Name: g.adapter.FormatTypeName(name),
+				Type: g.adapter.ConvertType(&schema),
+			}
 		}
 
 		if typeModel != nil {
 			types = append(types, *typeModel)
 		}
-
-		//if schema.Type == "array" && schema.Items != nil {
-		//	fmt.Println(schema.Items.Type, g.adapter.FormatTypeName(name), schema.Items.Items)
-		//	if schema.Items.Ref != "" {
-		//		types = append(types, models.TypeModel{
-		//			Name: g.adapter.FormatTypeName(name),
-		//			Type: g.adapter.ConvertType(&schema),
-		//		})
-		//	}
-		//
-		//}
 	}
 
 	return types
 }
 
 func (g *ClientGenerator) processObjectSchema(name string, schema *openapi.Schema) *models.TypeModel {
-	if schema.Properties == nil {
-		return nil
+	if len(schema.Properties) == 0 {
+		// TODO: handle additional properties
+
+		return &models.TypeModel{
+			Name:       g.adapter.FormatTypeName(name),
+			Type:      g.adapter.ConvertType(schema),
+		}
 	}
 
 	var properties []models.PropertyModel
-
 	for propName, propSchema := range schema.Properties {
-		propType := g.adapter.ConvertType(propSchema)
 
 		properties = append(properties, models.PropertyModel{
 			Name:     g.adapter.FormatPropertyName(propName),
-			Type:     propType,
+			Type:     g.adapter.ConvertType(propSchema),
 			Required: utils.Contains(schema.Required, propName),
 		})
 	}
 
 	return &models.TypeModel{
 		Name:       g.adapter.FormatTypeName(name),
-		Type:       "interface", // Keep as "interface" for objects
+		Type:       g.adapter.ConvertType(schema),
 		Properties: properties,
-	}
-}
-
-func (g *ClientGenerator) processArraySchema(name string, schema *openapi.Schema) *models.TypeModel {
-	if schema.Items == nil {
-		return &models.TypeModel{
-			Name:       g.adapter.FormatTypeName(name),
-			Type:       "any[]",
-			Properties: nil,
-		}
-	}
-
-	itemType := g.adapter.ConvertType(schema.Items)
-	arrayType := itemType + "[]"
-
-	return &models.TypeModel{
-		Name:       g.adapter.FormatTypeName(name),
-		Type:       arrayType,
-		Properties: nil,
 	}
 }
 
@@ -278,7 +259,7 @@ func (g *ClientGenerator) getRequestBodyType(requestBody *openapi.RequestBody) s
 			return g.adapter.ConvertType(mediaType.Schema)
 		}
 	}
-	return "any"
+	return g.adapter.ConvertType(nil)
 }
 
 func (g *ClientGenerator) getResponseType(operation *openapi.Operation) string {
@@ -291,7 +272,7 @@ func (g *ClientGenerator) getResponseType(operation *openapi.Operation) string {
 			}
 		}
 	}
-	return "any"
+	return g.adapter.ConvertType(nil)
 }
 
 func (g *ClientGenerator) getRequiredFiles() []string {

@@ -52,16 +52,29 @@ func (ts *TypeScriptAdapter) ConvertType(schema *openapi.Schema) string {
 	case "boolean":
 		return "boolean"
 	case "array":
-		if schema.Items != nil {
-			return ts.ConvertType(schema.Items) + "[]"
+		if schema.Items == nil {
+			return "any[]"
 		}
-		return "any[]"
+
+		if schema.Items.Ref != "" {
+			refName := strings.TrimPrefix(schema.Items.Ref, "#/components/schemas/")
+			return ts.FormatTypeName(refName) + "[]"
+		}
+
+		itemType := ts.ConvertType(schema.Items)
+		return itemType + "[]"
 	case "object":
 		if schema.Properties == nil {
 			return "Record<string, any>"
 		}
-		// For complex objects, we'll reference the generated interface
-		return "object"
+
+		var properties []string
+		for propName, propSchema := range schema.Properties {
+			propType := ts.ConvertType(propSchema)
+			properties = append(properties, fmt.Sprintf("%s: %s", propName, propType))
+		}
+
+		return "{" + strings.Join(properties, ", ") + "}"
 	default:
 		return "any"
 	}

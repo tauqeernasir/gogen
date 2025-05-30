@@ -1,2 +1,5 @@
-gogen
+generated-client
 .idea
+.cursorignore
+.vscode
+gogen
