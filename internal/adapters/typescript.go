@@ -94,6 +94,17 @@ func (ts *TypeScriptAdapter) ConvertType(schema *openapi.Schema) string {
 // FormatMethodName formats a method name using camelCase convention
 func (ts *TypeScriptAdapter) FormatMethodName(operationID, httpMethod string, tags []string) string {
 	if operationID != "" {
+		if strings.Contains(operationID, " ") {
+			words := strings.Split(operationID, " ")
+			for i, word := range words {
+				if i == 0 {
+					words[i] = strings.ToLower(word)
+				} else {
+					words[i] = strings.ToUpper(word[:1]) + strings.ToLower(word[1:])
+				}
+			}
+			return strings.Join(words, "")
+		}
 		return operationID
 	}
 	if len(tags) > 0 {

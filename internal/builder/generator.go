@@ -8,12 +8,14 @@ import (
 	"gogen/internal/openapi"
 	"gogen/internal/templates"
 	"gogen/internal/utils"
-	"io/ioutil"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 )
 
 type ClientGeneratorBuilder struct {
@@ -33,7 +35,7 @@ func NewClientGeneratorBuilder() *ClientGeneratorBuilder {
 }
 
 func (b *ClientGeneratorBuilder) WithSpec(specPath string) *ClientGeneratorBuilder {
-	data, err := ioutil.ReadFile(specPath)
+	data, err := b.loadSpecData(specPath)
 	if err != nil {
 		log.Fatal("Failed to read spec:", err)
 	}
@@ -91,6 +93,54 @@ func (b *ClientGeneratorBuilder) Build() *ClientGenerator {
 		adapter:     b.adapter,
 		templateMgr: b.templateMgr,
 	}
+}
+
+func (b *ClientGeneratorBuilder) loadSpecData(source string) ([]byte, error) {
+	if source == "-" || source == "stdin" {
+		return io.ReadAll(os.Stdin)
+	}
+
+	if b.isURL(source) {
+		return b.loadFromURL(source)
+	}
+
+	return b.loadFromFile(source)
+}
+
+func (b *ClientGeneratorBuilder) isURL(source string) bool {
+	return strings.HasPrefix(source, "http://") || strings.HasPrefix(source, "https://")
+}
+
+func (b *ClientGeneratorBuilder) loadFromURL(url string) ([]byte, error) {
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	resp, err := client.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load spec from URL: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to load spec from URL: %s", resp.Status)
+	}
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read spec response body: %w", err)
+	}
+
+	return data, nil
+}
+
+func (b *ClientGeneratorBuilder) loadFromFile(path string) ([]byte, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read spec file: %w", err)
+	}
+
+	return data, nil
 }
 
 // Client generator
@@ -203,7 +253,7 @@ func (g *ClientGenerator) buildMethodModel(path, httpMethod string, operation *o
 	}
 
 	return models.MethodModel{
-		Name:         operation.OperationID,
+		Name:         g.adapter.FormatMethodName(operation.OperationID, httpMethod, operation.Tags),
 		HTTPMethod:   httpMethod,
 		Path:         g.adapter.FormatPath(path, httpMethod),
 		Summary:      operation.Summary,
