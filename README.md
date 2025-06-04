@@ -9,6 +9,15 @@ A fast, type-safe API client generator that transforms OpenAPI 3.0 specification
 - **NestJS Compatible**: Handles NestJS Swagger schemas seamlessly
 - **Zero Configuration**: Works out of the box with sensible defaults
 
+## 🌐 Supported Languages
+
+- [x] TypeScript
+  - [x] TypeScript-Axios
+- [ ] Python
+- [ ] Go
+- [ ] Java
+- [ ] C#
+
 ## 📦 Installation
 
 ```bash
