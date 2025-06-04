@@ -17,7 +17,7 @@ func main() {
 		outputDir    = flag.String("output", "./generated-client", "Output directory")
 		language     = flag.String("lang", "typescript", "Target language (typescript, python)")
 		templatesDir = flag.String("templates", "", "Custom templates directory")
-		prettier     = flag.Bool("prettier", false, "Run prettier after generation")
+		prettier     = flag.Bool("prettier", true, "Run prettier after generation")
 	)
 	flag.Parse()
 
@@ -38,8 +38,15 @@ func main() {
 	}
 
 	if *language == "typescript" && *prettier {
+		absOutputDir, err := filepath.Abs(*outputDir)
+		if err != nil {
+			log.Printf("Warning: Could not get absolute path for outputDir '%s': %v", *outputDir, err)
+			absOutputDir = *outputDir
+		}
+
 		if _, err := exec.LookPath("npx"); err == nil {
-			cmd := exec.Command("npx", "prettier", "--write", filepath.Join(*outputDir, "**/*.ts"))
+			cmd := exec.Command("npx", "prettier", "--write", filepath.Join(absOutputDir, "**", "*.ts"))
+			cmd.Dir = absOutputDir
 			if err := cmd.Run(); err != nil {
 				log.Printf("Warning: Failed to run prettier: %v", err)
 			}
